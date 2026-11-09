@@ -1,0 +1,12 @@
+ENAHO 2019: validación de la limpieza
+Hogares en la sumaria:           34,565
+Filas en el módulo de miembros:  128,276
+Residentes habituales:           120,052
+Personas que representan:        32,676,530
+
+Pobreza monetaria (sumaria, factor07 × mieperho):  20.19 %
+Pobreza extrema (sumaria, factor07 × mieperho):    2.85 %
+Pobreza en la base de personas (facpob07):         20.17 %
+Cifra oficial del INEI:                            20.2 %
+
+Resultado: OK

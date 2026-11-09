@@ -1,5 +1,5 @@
 [project]
-name = "tarea-4"
+name = "agente-datos-peru"
 version = "0.1.0"
 description = "Agente de investigación socioeconómica del Perú: MCP (BCRP, microdatos INEI, REDATAM) y Skills de la ENAHO"
 requires-python = ">=3.12"

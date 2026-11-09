@@ -1,0 +1,7 @@
+Pregunta de investigación: ¿Por qué la pobreza monetaria de 2024 sigue por encima de la de 2019, antes de la pandemia, y a qué departamentos golpeó más?
+
+Respóndela como agente de este proyecto, usando sus herramientas MCP y sus skills (no escribas cifras a mano):
+1. Con las herramientas MCP del BCRP (buscar_series, resumen, graficar_series), mide cuánto subieron los precios de los alimentos frente al IPC general entre diciembre de 2019 y diciembre de 2024, y guarda el gráfico de la inflación de alimentos y la general (var. % 12 meses, 2019-2024).
+2. Con las skills de la ENAHO (limpiando-enaho, graficando-enaho, mapeando-enaho), compara la pobreza de 2019 y 2024 a nivel nacional y por área, y haz el mapa de la pobreza 2024 por departamento.
+3. Con la skill cruzando-fuentes y la herramienta MCP consultar_redatam (Censo 2017), compara el cambio por departamento y revisa si los departamentos con más viviendas sin red pública de agua son los más pobres o los que más empeoraron.
+4. Escribe en informes/respuesta_agente.md tres hallazgos, cada uno con sus cifras, su fuente (código de serie o encuesta y año) y las rutas de los gráficos. Cierra con lo que estos datos no permiten concluir.

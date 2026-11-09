@@ -183,6 +183,63 @@ def resumen(codigo: str, desde: str, hasta: str) -> dict:
             "fuente": s["fuente"]}
 
 
+COLORES_GRAFICO = ["#B5451B", "#555555", "#2F6B8A", "#8C8C3A"]
+
+
+@mcp.tool(annotations={"readOnlyHint": False, "openWorldHint": True})
+def graficar_series(codigos: list[str], desde: str, hasta: str, titulo: str, archivo: str) -> dict:
+    """Grafica una o varias series del BCRP en líneas y guarda el PNG en figuras/ y los datos en salidas/.
+
+    Úsenla para el gráfico del BCRP de un informe. Mismas fechas que serie. Ejemplo: codigos=["PN09822PM",
+    "PN01273PM"], desde="2019-01", hasta="2024-12", titulo="Inflación de alimentos y general, Lima (var. % 12 meses)",
+    archivo="inflacion_2019_2024". Conviene juntar solo series con la misma unidad. Devuelve las rutas del PNG y del
+    CSV, y por serie su nombre y su máximo con el periodo, para citarlos en el texto.
+    """
+    import matplotlib
+
+    matplotlib.use("Agg")  # sin ventanas: solo guardamos el PNG
+    import matplotlib.pyplot as plt
+
+    archivo = re.sub(r"[^\w-]", "_", archivo)
+    figura, ejes = plt.subplots(figsize=(9, 4.5))
+    tablas = []
+    resumenes = []
+    for posicion, codigo in enumerate(codigos):
+        s = serie(codigo, desde, hasta)
+        tabla = pd.DataFrame(s["datos"])
+        tabla["codigo"] = codigo
+        tabla["nombre"] = s["nombre"]
+        tablas.append(tabla)
+        etiqueta = s["nombre"].split(" - ")[-1]
+        ejes.plot(range(len(tabla)), tabla["valor"], color=COLORES_GRAFICO[posicion % 4], linewidth=2,
+                  label=f"{etiqueta} ({codigo})")
+        maximo = tabla.loc[tabla["valor"].idxmax()]
+        resumenes.append({"codigo": codigo, "nombre": s["nombre"],
+                          "maximo": {"periodo": maximo["periodo"], "valor": maximo["valor"]}})
+
+    # El eje x muestra unas ocho fechas para que no se amontonen
+    periodos = tablas[0]["periodo"].tolist()
+    paso = max(1, len(periodos) // 8)
+    ejes.set_xticks(range(0, len(periodos), paso))
+    ejes.set_xticklabels(periodos[::paso], fontsize=8)
+    ejes.axhline(0, color="#999999", linewidth=0.8)
+    ejes.spines[["top", "right"]].set_visible(False)
+    ejes.legend(frameon=False, fontsize=8)
+    ejes.set_title(titulo, loc="left", fontweight="bold")
+    ejes.annotate(f"Fuente: BCRP, series {', '.join(codigos)}.", xy=(0, 0), xycoords="axes fraction",
+                  xytext=(0, -30), textcoords="offset points", fontsize=8, color="#555555", va="top")
+
+    ruta_png = RAIZ / "figuras" / f"{archivo}.png"
+    ruta_csv = RAIZ / "salidas" / f"{archivo}.csv"
+    ruta_png.parent.mkdir(exist_ok=True)
+    ruta_csv.parent.mkdir(exist_ok=True)
+    figura.savefig(ruta_png, dpi=200, bbox_inches="tight")
+    plt.close(figura)
+    pd.concat(tablas).to_csv(ruta_csv, index=False, encoding="utf-8")
+    return {"png": ruta_png.relative_to(RAIZ).as_posix(), "csv": ruta_csv.relative_to(RAIZ).as_posix(),
+            "series": resumenes}
+
+
 BANCO_MUNDIAL = "https://api.worldbank.org/v2/country/{paises}/indicator/{indicador}?format=json&date={desde}:{hasta}"
 
 
@@ -220,7 +277,7 @@ def comparar_paises(indicador: str = "NY.GDP.MKTP.KD.ZG", paises: list[str] | No
 PORTAL_INEI = "https://proyectos.inei.gob.pe/microdatos"
 DESCARGAS_INEI = "https://proyectos.inei.gob.pe/iinei/srienaho/descarga"
 CARPETA_INEI = RAIZ / "datos" / "inei"
-CABECERAS = {"User-Agent": "tarea-4-agente-peru/0.1"}
+CABECERAS = {"User-Agent": "agente-datos-peru/0.1"}
 FORMATOS_INEI = ("CSV", "STATA", "SPSS")
 
 
@@ -395,8 +452,12 @@ def _pedir_redatam(url, campos=None):
         if r.status_code == 200:
             return r.content.decode("utf-8", errors="replace").lstrip("﻿")
         if r.status_code == 500:
-            raise ToolError("REDATAM rechazó el programa (HTTP 500). Casi siempre es la sintaxis: revisen los nombres "
-                            "con variables_redatam y copien una de las formas del ejemplo de consultar_redatam.")
+            # REDATAM explica el error en la página: «Identificador de variable desconocido [...] FOR clause»
+            texto = re.sub(r"\s+", " ", _texto_html(r.content.decode("utf-8", errors="replace")))
+            motivo = re.search(r"(N\S*mero de Error.*?)(RUNDEF|INL ItemID)", texto)
+            detalle = motivo.group(1).strip() if motivo else "sin detalle"
+            raise ToolError(f"REDATAM rechazó el programa: {detalle}. Revisen los nombres con variables_redatam "
+                            "(respeten mayúsculas y minúsculas: Vivienda.C2P6) y las formas del ejemplo.")
         time.sleep(3 * (intento + 1))
     raise ToolError("El servidor REDATAM del INEI no respondió. Esperen unos segundos y reintenten.")
 
@@ -412,7 +473,8 @@ def _diccionario_redatam():
             continue
         numero, nombre, rotulo, _, grupo, tipo, minimo, maximo = celdas[:8]
         if "." not in numero:
-            entidades[numero] = nombre.upper()
+            # Tal cual: dentro de un FOR, REDATAM acepta Vivienda.C2P6 pero no VIVIENDA.C2P6
+            entidades[numero] = nombre
             continue
         entidad = entidades[numero.split(".")[0]]
         variables.append({"variable": f"{entidad}.{nombre}", "rotulo": rotulo, "grupo": grupo, "tipo": tipo,
@@ -488,17 +550,19 @@ def _tabla_redatam(pagina):
 def consultar_redatam(programa: str, nombre: str = "consulta", max_filas: int = 30) -> dict:
     """Corre un programa REDATAM sobre el Censo 2017 del INEI (población y vivienda) y devuelve la tabla.
 
-    Entidades, de mayor a menor: PERU > DEPARTAM > PROVINCI > DISTRITO > VIVIENDA > HOGAR > POBLACIO. Las variables
-    se escriben ENTIDAD.VARIABLE (VIVIENDA.VAREA, POBLACIO.C5P81); búsquenlas con variables_redatam. Si el programa
-    no empieza con RUNDEF, se le agrega "RUNDEF Job / SELECTION ALL". Tres formas que funcionan:
+    Entidades, de mayor a menor: PERU > Departam > Provinci > Distrito > Vivienda > Hogar > Poblacio. Las variables
+    se escriben Entidad.VARIABLE, tal como las devuelve variables_redatam (Vivienda.VAREA, Poblacio.C5P81): dentro de
+    un FOR, REDATAM distingue mayúsculas. Si el programa no empieza con RUNDEF, se le agrega
+    "RUNDEF Job / SELECTION ALL". Formas que funcionan:
 
-      TABLE T1 AS FREQUENCY OF VIVIENDA.C2P6                     (frecuencia nacional)
-      TABLE T1 AS CROSSTABS OF DEPARTAM.NCCDD BY VIVIENDA.VAREA  (cruce por departamento)
-      DEFINE DISTRITO.NPOB AS COUNT POBLACIO TYPE INTEGER
-      TABLE T1 AS AREALIST OF DISTRITO, DISTRITO.CCDI, DISTRITO.NCCDI, DISTRITO.NPOB   (una fila por distrito)
+      TABLE T1 AS FREQUENCY OF Vivienda.C2P6                     (frecuencia nacional)
+      TABLE T1 AS CROSSTABS OF Departam.NCCDD BY Vivienda.VAREA  (cruce por departamento)
+      DEFINE Distrito.NPOB AS COUNT Poblacio TYPE INTEGER
+      TABLE T1 AS AREALIST OF Distrito, Distrito.CCDI, Distrito.NCCDI, Distrito.NPOB   (una fila por distrito)
+      DEFINE Departam.NSINRED AS COUNT Vivienda FOR Vivienda.C2P6 >= 3 TYPE INTEGER    (conteo con condición)
 
-    AREALIST devuelve el ubigeo de 6 dígitos en la columna "Código", como texto: con él se cruza con la ENAHO, la ENA
-    o un mapa. Son conteos del censo, sin factor de expansión. La tabla completa queda en salidas/redatam/<nombre>.csv;
+    AREALIST devuelve el ubigeo en la columna "Código" (2 dígitos por departamento, 6 por distrito), como texto: con
+    él se cruza con la ENAHO, la ENA o un mapa. Son conteos del censo, sin factor de expansión. La tabla completa queda en salidas/redatam/<nombre>.csv;
     la respuesta trae las primeras max_filas. Devuelve por tabla el título, las columnas, el número de filas, las
     filas y la ruta del CSV.
     """
