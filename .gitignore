@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.claude/settings.local.json
+
+# Microdatos crudos: el INEI los publica, pero no se suben al repositorio
+datos/
+
+# Bases intermedias pesadas; validacion.txt e indicadores.csv sí se suben
+salidas/*.parquet
+salidas/redatam/

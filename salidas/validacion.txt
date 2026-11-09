@@ -1,0 +1,12 @@
+ENAHO 2024: validación de la limpieza
+Hogares en la sumaria:           33,691
+Filas en el módulo de miembros:  117,721
+Residentes habituales:           108,664
+Personas que representan:        34,482,700
+
+Pobreza monetaria (sumaria, factor07 × mieperho):  27.58 %
+Pobreza extrema (sumaria, factor07 × mieperho):    5.50 %
+Pobreza en la base de personas (facpob07):         27.53 %
+Cifra oficial del INEI:                            27.6 %
+
+Resultado: OK

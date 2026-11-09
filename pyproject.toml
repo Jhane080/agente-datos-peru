@@ -1,0 +1,20 @@
+[project]
+name = "tarea-4"
+version = "0.1.0"
+description = "Agente de investigación socioeconómica del Perú: MCP (BCRP, microdatos INEI, REDATAM) y Skills de la ENAHO"
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=4,<5",
+    "geopandas>=1.2.0",
+    "httpx",
+    "matplotlib>=3.11.2",
+    "pandas>=3.1.0",
+    "pyarrow>=26.0.0",
+]
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["mcp"]
+pythonpath = ["mcp"]
