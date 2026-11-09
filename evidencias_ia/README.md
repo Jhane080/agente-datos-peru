@@ -2,6 +2,7 @@
 
 | Archivo | Qué es |
 |---|---|
+| `historial_chat_ia.pdf` | La conversación con Claude Code con la que se armó el proyecto: los mensajes de la autora, las respuestas del asistente y cada herramienta que usó, resumida. Sin el razonamiento interno ni los avisos del sistema; con los correos personales omitidos |
 | `pregunta_integrada.txt` | El pedido que recibió el agente para la Parte 3 |
 | `corrida_integrada.jsonl` | La corrida completa del agente (`claude -p ... --output-format stream-json`): cada llamada a herramientas MCP y skills, con sus resultados |
 
