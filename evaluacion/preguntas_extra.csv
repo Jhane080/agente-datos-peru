@@ -1,0 +1,4 @@
+id,pregunta,verdad,tolerancia,fuente,herramienta_esperada
+censo_puno_agua,"Según el Censo 2017 del INEI, ¿qué porcentaje de las viviendas de Puno no se abastecía de agua por red pública (ni dentro ni fuera de la vivienda), en % de viviendas con dato?",52.81,0.3,"INEI, Censo 2017, REDATAM, C2P6",MCP consultar_redatam
+censo_chachapoyas,¿Cuántas personas censó el Censo 2017 del INEI en el distrito de Chachapoyas (ubigeo 010101)?,32589.0,0.0,"INEI, Censo 2017, REDATAM",MCP consultar_redatam
+ena_modulos_2025,¿Cuántos módulos de microdatos publica el INEI en su portal para la Encuesta Nacional Agropecuaria (ENA) 2025?,21.0,0.0,"INEI, portal de microdatos",MCP modulos_inei

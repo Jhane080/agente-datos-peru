@@ -114,7 +114,14 @@ if __name__ == "__main__":
         anteriores = pd.read_csv(ruta_resultados)
         repetidas = anteriores.set_index(["id", "modo"]).index.isin(nuevos.set_index(["id", "modo"]).index)
         nuevos = pd.concat([anteriores[~repetidas], nuevos], ignore_index=True)
-    nuevos.to_csv(ruta_resultados, index=False, encoding="utf-8")
+
+    # El texto de la pregunta va en cada fila, para leer resultados.csv sin abrir preguntas.csv
+    todas = pd.read_csv(AQUI / "preguntas.csv").set_index("id")
+    nuevos["pregunta"] = nuevos["id"].map(todas["pregunta"])
+    nuevos["orden"] = nuevos["id"].map({id_: n for n, id_ in enumerate(todas.index)})
+    nuevos = nuevos.sort_values(["orden", "modo"], ascending=[True, False]).drop(columns="orden")
+    columnas = ["id", "modo", "pregunta"] + [c for c in nuevos.columns if c not in ("id", "modo", "pregunta")]
+    nuevos[columnas].to_csv(ruta_resultados, index=False, encoding="utf-8")
 
     print("\n" + nuevos.pivot(index="id", columns="modo", values="valor").to_string())
     tabla = nuevos.groupby("modo")["resultado"].value_counts().unstack(fill_value=0)

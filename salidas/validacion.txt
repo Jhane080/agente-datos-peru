@@ -9,4 +9,15 @@ Pobreza extrema (sumaria, factor07 × mieperho):    5.50 %
 Pobreza en la base de personas (facpob07):         27.53 %
 Cifra oficial del INEI:                            27.6 %
 
+Controles:
+[APROBADO] Hogares sin duplicados (conglome, vivienda, hogar)
+[APROBADO] Personas sin duplicados (+ codperso)
+[APROBADO] Unión m:1 sin perder ni duplicar filas
+[APROBADO] Todas las personas tienen hogar en la sumaria
+[APROBADO] Ubigeos como texto de 6 dígitos
+[APROBADO] 25 códigos de departamento (01 a 25)
+[APROBADO] Factores de expansión completos y positivos
+[APROBADO] Residentes habituales = 108,664
+[APROBADO] Pobreza a menos de 0.1 puntos del INEI (27.6 %)
+
 Resultado: OK

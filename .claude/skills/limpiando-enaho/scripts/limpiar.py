@@ -25,6 +25,8 @@ ANCHO_DE_LLAVE = {"conglome": 6, "vivienda": 3, "hogar": 2, "codperso": 2, "ubig
 
 # Pobreza monetaria oficial del INEI (% de personas). Verificadas con la sumaria.
 POBREZA_OFICIAL = {2019: 20.2, 2022: 27.5, 2023: 29.0, 2024: 27.6}
+# Residentes habituales que debe dejar el filtro (valor de referencia del curso)
+RESIDENTES_OFICIAL = {2024: 108664}
 
 parser = argparse.ArgumentParser(description="Limpia la ENAHO anual del INEI")
 parser.add_argument("--anio", type=int, required=True)
@@ -100,9 +102,29 @@ pobreza_extrema = tasa_ponderada(hogares, hogares["pobre_extremo"], "factor_pers
 pobreza_en_personas = tasa_ponderada(base_personas, base_personas["pobre"], "facpob07")
 
 cifra_oficial = POBREZA_OFICIAL.get(anio)
+residentes_oficial = RESIDENTES_OFICIAL.get(anio)
+codigos_esperados = {f"{numero:02d}" for numero in range(1, 26)}
+
+# Cada control queda escrito como APROBADO o FALLIDO en validacion.txt
+controles = [
+    ("Hogares sin duplicados (conglome, vivienda, hogar)", not hogares.duplicated(LLAVES_HOGAR).any()),
+    ("Personas sin duplicados (+ codperso)", not base_personas.duplicated(LLAVES_PERSONA).any()),
+    ("Unión m:1 sin perder ni duplicar filas", len(base_personas) == len(personas)),
+    ("Todas las personas tienen hogar en la sumaria", bool(base_personas["pobreza"].notna().all())),
+    ("Ubigeos como texto de 6 dígitos", bool(hogares["ubigeo"].str.fullmatch(r"\d{6}").all())),
+    ("25 códigos de departamento (01 a 25)", set(hogares["departamento"]) == codigos_esperados),
+    ("Factores de expansión completos y positivos", bool((hogares["factor_personas"] > 0).all())),
+]
+if residentes_oficial is not None:
+    controles.append((f"Residentes habituales = {residentes_oficial:,}", len(base_personas) == residentes_oficial))
+if cifra_oficial is not None:
+    controles.append((f"Pobreza a menos de 0.1 puntos del INEI ({cifra_oficial} %)",
+                      abs(pobreza - cifra_oficial) < 0.1))
+
+lineas_controles = "\n".join(f"[{'APROBADO' if paso else 'FALLIDO '}] {nombre}" for nombre, paso in controles)
 if cifra_oficial is None:
     resultado = "SIN CIFRA OFICIAL: agreguen la del INEI a POBREZA_OFICIAL"
-elif abs(pobreza - cifra_oficial) < 0.1:
+elif all(paso for _, paso in controles):
     resultado = "OK"
 else:
     resultado = "DIFERENCIA: revisen la limpieza antes de usar la base"
@@ -122,6 +144,9 @@ Pobreza monetaria (sumaria, factor07 × mieperho):  {pobreza:.2f} %
 Pobreza extrema (sumaria, factor07 × mieperho):    {pobreza_extrema:.2f} %
 Pobreza en la base de personas (facpob07):         {pobreza_en_personas:.2f} %
 Cifra oficial del INEI:                            {cifra_oficial} %
+
+Controles:
+{lineas_controles}
 
 Resultado: {resultado}
 """

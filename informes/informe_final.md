@@ -79,6 +79,29 @@ donde más subió la pobreza, son de los que tienen menos viviendas sin red (11.
 explica dónde está la pobreza de siempre; el golpe de 2019–2024 vino por otro lado, el de los precios y los ingresos
 urbanos.
 
+Otros cortes de la ENAHO 2024, hechos con la skill `graficando-enaho`: por sexo la pobreza casi no cambia (mujeres
+27.7 %, hombres 27.4 %), y por departamento el orden es el del mapa.
+
+![Pobreza por sexo, 2024](../figuras/pobre_por_sexo_2024.png)
+![Pobreza por departamento, 2024](../figuras/pobre_por_departamento_2024.png)
+
+## Verificación de las cifras
+
+Seis afirmaciones del informe, comprobadas por un camino distinto al de la herramienta que las produjo.
+
+| Afirmación | Valor calculado | Cómo se verificó | ¿Coincide? | Diferencia |
+|---|---|---|---|---|
+| Pobreza monetaria 2024 | 27.58 % (skill `limpiando-enaho`) | Cifra oficial del INEI: 27.6 % | Sí | 0.02 puntos |
+| Pobreza urbana y rural 2024 | 24.81 % y 39.30 % (skill `cruzando-fuentes`) | Valores de referencia del enunciado: 24.8 % y 39.3 % | Sí | menos de 0.01 puntos |
+| Residentes habituales 2024 | 108,664 (skill `limpiando-enaho`) | Valor de referencia del enunciado: 108,664 | Sí | 0 |
+| Pobreza monetaria 2019 | 20.19 % (skill `limpiando-enaho`) | Cifra oficial del INEI: 20.2 % | Sí | 0.01 puntos |
+| Alimentos y bebidas, dic-2019 a dic-2024 | +31.94 % (MCP `resumen`, `PN39445PM`) | A mano con los dos índices de la serie: 119.5292 / 90.5906 − 1 = 31.94 % | Sí | 0 |
+| IPC general, dic-2019 a dic-2024 | +23.91 % (MCP `resumen`, `PN38705PM`) | A mano: 114.1721 / 92.14 − 1 = 23.91 % | Sí | 0 |
+
+Los controles completos de la limpieza (duplicados, unión m:1, ubigeos de 6 dígitos, 25 departamentos, factores) están
+en [`salidas/validacion.txt`](../salidas/validacion.txt) y [`salidas/validacion_2019.txt`](../salidas/validacion_2019.txt),
+cada uno marcado como aprobado o fallido.
+
 ## Lo que estos datos no permiten concluir
 
 - **No prueban que la inflación causó la pobreza.** Muestran que suben juntas y por un camino coherente. En el

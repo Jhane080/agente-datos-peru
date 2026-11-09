@@ -73,17 +73,75 @@ La limpieza valida contra la cifra oficial del INEI antes de entregar nada: 27.5
 
 ## Evaluación
 
-Diez preguntas con respuesta verificada (tres del BCRP, cuatro de la ENAHO, dos del censo y una del portal de
-microdatos), hechas a Claude Code con y sin el MCP y las skills:
+Diez preguntas con respuesta verificada (cuatro del BCRP, cuatro de la ENAHO y dos que combinan ambas), hechas a
+Claude Code con y sin el MCP y las skills:
 
 | Modo | Acierta | No sabe | Se equivoca |
 |---|---|---|---|
-| Sin herramientas (solo memoria) | 1 | 8 | 1 |
+| Sin herramientas (solo memoria) | 2 | 8 | 0 |
 | Con el MCP y las skills | **10** | 0 | 0 |
 
-Sin herramientas, el modelo casi siempre reconoció que no sabía; la vez que respondió una cifra del censo, se
-equivocó en 10 % sin dudar. El detalle, los límites y cómo repetirla están en
-[`evaluacion/comparacion.md`](evaluacion/comparacion.md).
+Sin herramientas, el modelo casi siempre reconoció que no sabía. En tres preguntas adicionales sobre el censo y el
+portal del INEI, la única vez que respondió de memoria se equivocó en 10 % sin dudar. El detalle, los límites y cómo
+repetirla están en [`evaluacion/comparacion.md`](evaluacion/comparacion.md).
+
+## Fuentes de datos
+
+| Fuente | Enlace | Cómo se obtiene |
+|---|---|---|
+| ENAHO 2024, módulo 34 (sumaria) | https://proyectos.inei.gob.pe/iinei/srienaho/descarga/STATA/966-Modulo34.zip | Skill `descargando-enaho` |
+| ENAHO 2024, módulo 02 (miembros) | https://proyectos.inei.gob.pe/iinei/srienaho/descarga/STATA/966-Modulo02.zip | Skill `descargando-enaho` |
+| ENAHO 2019, módulos 34 y 02 (código 687) | https://proyectos.inei.gob.pe/iinei/srienaho/descarga/STATA/687-Modulo34.zip | `descargar.py --anio 2019` |
+| Límites departamentales | https://raw.githubusercontent.com/d2cml-ai/Data-Science-Python/main/sessions/06-geoespacial/lab/Data/peru_departamental_simple.geojson | Skill `mapeando-enaho` (lo baja si falta) |
+| Series del BCRP | https://estadisticas.bcrp.gob.pe/estadisticas/series/ | MCP `buscar_series`, `serie`, `resumen` |
+| Censo 2017 (REDATAM) | https://censos2017.inei.gob.pe/redatam/ | MCP `consultar_redatam` |
+| Portal de microdatos del INEI | https://proyectos.inei.gob.pe/microdatos/ | MCP `encuestas_inei`, `modulos_inei`, `descargar_modulo_inei` |
+
+Los microdatos no están en el repositorio (`datos/` va en `.gitignore`): las skills los bajan la primera vez.
+
+## Reproducir todo
+
+```bash
+uv sync                                                                  # dependencias
+uv run pytest                                                            # 10 pruebas del MCP
+uv run .claude/skills/descargando-enaho/scripts/descargar.py --anio 2024 # microdatos (también --anio 2019)
+uv run .claude/skills/limpiando-enaho/scripts/limpiar.py --anio 2024     # base limpia y validacion.txt
+uv run .claude/skills/graficando-enaho/scripts/graficar.py --por area    # también sexo y departamento
+uv run .claude/skills/mapeando-enaho/scripts/mapear.py --anio 2024       # mapa
+uv run .claude/skills/cruzando-fuentes/scripts/cruzar.py --desde 2019 --hasta 2024  # indicadores.csv
+uv run evaluacion/evaluar.py                                             # evaluación con y sin herramientas
+```
+
+El servidor MCP se conecta solo: `.mcp.json` declara `uv run mcp/server.py`, y Claude Code pide aprobarlo la primera
+vez que se abre el proyecto. Para agregarlo a mano: `claude mcp add --scope project peru -- uv run mcp/server.py`.
+
+## Un ejemplo de corrida completa
+
+La pregunta de investigación se le dio al agente en una sola instrucción
+([`evidencias_ia/pregunta_integrada.txt`](evidencias_ia/pregunta_integrada.txt)), con `salidas/`, `figuras/` y `mapas/`
+vacíos. En 29 turnos y unos 2 minutos, Claude Code limpió la ENAHO 2019 y 2024 (`limpiando-enaho`), hizo los
+gráficos y el mapa (`graficando-enaho`, `mapeando-enaho`), buscó y resumió las series del BCRP (`buscar_series`,
+`resumen`), graficó la inflación (`graficar_series`), consultó el censo (`consultar_redatam`), cruzó todo
+(`cruzando-fuentes`) y escribió [`informes/respuesta_agente.md`](informes/respuesta_agente.md). El registro completo
+está en [`evidencias_ia/corrida_integrada.jsonl`](evidencias_ia/corrida_integrada.jsonl).
+
+## Limitaciones y problemas encontrados
+
+- **El portal de microdatos y REDATAM no tienen API.** Las herramientas imitan los formularios de la página; si el
+  INEI los cambia, dejan de funcionar.
+- **REDATAM tiene reglas que no están documentadas a la vista:** dentro de un `FOR` distingue mayúsculas y las
+  variables nuevas no pueden pasar de 10 caracteres. `consultar_redatam` devuelve el mensaje de error del servidor
+  para que el agente pueda corregirse.
+- **Las skills personales tienen prioridad.** Si en la máquina hay skills con el mismo nombre en `~/.claude/skills/`,
+  Claude Code usa esas (pasó en la corrida integrada; ver [`evidencias_ia/README.md`](evidencias_ia/README.md)).
+- **Las cifras por departamento tienen márgenes de error amplios** y el análisis no calcula intervalos de confianza.
+- **El IPC es de Lima Metropolitana** y el censo es de 2017. Las correlaciones entre 25 departamentos describen; no
+  prueban causas.
+
+## Evidencias del uso de IA
+
+Todo está en [`evidencias_ia/`](evidencias_ia/): el historial de la conversación con Claude Code con la que se armó el
+proyecto ([`historial_chat_ia.pdf`](evidencias_ia/historial_chat_ia.pdf)) y la corrida integrada del agente.
 
 ## Cómo usarlo
 
